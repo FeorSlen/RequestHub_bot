@@ -22,7 +22,7 @@ async def start(message: Message, state: FSMContext):
 @router.callback_query(F.data == UserMenu.ACTION_FALLBACK)
 async def fallback(callback: CallbackQuery, state: FSMContext):
     await state.clear()
-    await callback.message.answer(MAIN_MENU_TEXT, reply_markup=UserMenu.get_base_manual_menu())
+    await callback.message.answer(MAIN_MENU_TEXT, reply_markup=UserMenu.get_base_manual_menu(), disable_web_page_preview=True )
     await callback.answer()
 
 
@@ -110,4 +110,4 @@ async def show_menu(message: Message, state: FSMContext, text: str = MAIN_MENU_T
     Сбрасывает состояние пользователя.
     """
     await state.clear()
-    await message.answer(text, reply_markup=UserMenu.get_base_manual_menu())
+    await message.answer(text, reply_markup=UserMenu.get_base_manual_menu(), disable_web_page_preview=True )

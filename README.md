@@ -20,7 +20,7 @@
 
 📦 Установка
 
-git clone https://github.com/your-repo/anon-bot.git \
+git clone https://github.com/FeorSlen/RequestHub_bot.git \
 cd anon-bot \
 python -m venv venv \
 source venv/bin/activate \
@@ -33,7 +33,7 @@ pip install -r requirements.txt
 
 API_TOKEN=your_telegram_bot_token \
 ADMIN_TG_IDS=123456789,987654321 \
-ADMIN_SECRET=your_secret_key \
+DATABASE_PATH=./path.db \
 
 
 ▶️ Запуск
