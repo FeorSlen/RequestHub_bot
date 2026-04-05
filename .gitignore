@@ -1,0 +1,19 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# venv
+venv/
+
+# env
+.env
+
+# IDE
+.idea/
+.vscode/
+
+db.sqlite3
+db.sqlite3-shm
+db.sqlite3-wal
