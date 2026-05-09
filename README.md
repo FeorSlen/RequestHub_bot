@@ -1,49 +1,48 @@
-📨 Anonymous Requests Bot
+# Anonymous Petition Bot
 
-Бот для анонимной отправки обращений с возможностью отслеживания их статуса по уникальному идентификатору.
-Бот не требует регистрации и не хранит персональные данные пользователей.
+Telegram-бот для анонимных обращений. Пользователь отправляет текст, получает UUID и может проверить статус ответа по нему. Администратор видит очередь, может ответить или пометить как спам.
 
-Каждому обращению присваивается уникальный идентификатор (UUID), который используется для получения ответа.
+Персональные данные не хранятся. Анонимность на уровне приложения — Telegram и сервер остаются точками доверия.
 
-⚠️ Анонимность сохраняется при условии:
-отсутствия компрометации устройства пользователя
-отсутствия компрометации инфраструктуры Telegram
-корректной эксплуатации сервиса
+## Стек
 
-🛠 Технологии
+- Python 3.11+ / aiogram 3
+- SQLite (WAL) + aiosqlite
+- FSM, rate limiting middleware
 
-- Python 3.12
-- aiogram 3
-- SQLite
-- FSM (Finite State Machine)
-- кастомные middleware (rate limiting, DI для БД)
+## Установка
 
-📦 Установка
-
-git clone https://github.com/FeorSlen/RequestHub_bot.git \
-cd anon-bot \
-python -m venv venv \
-source venv/bin/activate \
+```bash
+git clone https://github.com/FeorSlen/RequestHub_bot.git
+cd RequestHub_bot
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
+```
 
+## Конфигурация
 
-⚙️ Настройка
+Создай `.env`:
 
-Создай .env файл:
+```
+API_TOKEN=<telegram bot token>
+ADMIN_TG_IDS=123456789,987654321
+DATABASE_PATH=data/db.sqlite3
+```
 
-API_TOKEN=your_telegram_bot_token \
-ADMIN_TG_IDS=123456789,987654321 \
-DATABASE_PATH=./path.db \
+## Запуск
 
-
-▶️ Запуск
+```bash
 python main.py
+```
 
+## Структура
 
-🧩 Архитектура\
-src/\
-├── user/          # пользовательские хендлеры\
-├── admin/         # админ-панель\
-├── middleware/    # rate limit, db DI\
-├── utils/         # меню, фильтры, утилиты\
-├── db_connector   # асинхронная обёртка над SQLite
+```
+src/
+├── user/        # хендлеры и логика пользователя
+├── admin/       # панель администратора
+├── middleware/  # rate limiting, инъекция БД
+├── utils/       # фильтры, базовое меню
+└── db_connector.py
+```
