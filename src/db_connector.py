@@ -43,4 +43,15 @@ class DBConnector:
         await self._conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_requests_processed ON requests(processed)"
         )
+        await self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS photos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_hash TEXT NOT NULL,
+                file_path TEXT NOT NULL,
+                uploaded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        await self._conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_photos_user_hash ON photos(user_hash)"
+        )
         await self._conn.commit()

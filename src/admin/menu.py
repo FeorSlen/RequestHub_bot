@@ -10,12 +10,14 @@ class AdminMenu(Menu):
     REQUEST_SPAM = "🚫 Отправить в спам"
     REQUEST_RESPONSE = "✍️ Ответить на обращение"
     NON_PROCESSED_REQUEST_AMOUNT = "📊 Количество необработанных обращений"
+    DOWNLOAD_PHOTOS = "📦 Скачать архив фото"
 
     all_filters: ClassVar[dict[str, str]] = {
         REQUEST_PROCESS: "process",
         REQUEST_SPAM: "spam",
         REQUEST_RESPONSE: "response",
-        NON_PROCESSED_REQUEST_AMOUNT: "amount"
+        NON_PROCESSED_REQUEST_AMOUNT: "amount",
+        DOWNLOAD_PHOTOS: "download_photos",
     }
 
     class AdminStates(StatesGroup):
@@ -41,7 +43,8 @@ class AdminMenu(Menu):
     def empty_menu(cls) -> InlineKeyboardMarkup:
         return InlineKeyboardMarkup(
             inline_keyboard=[
-                cls._row(cls.REQUEST_PROCESS, cls.NON_PROCESSED_REQUEST_AMOUNT)
+                cls._row(cls.REQUEST_PROCESS, cls.NON_PROCESSED_REQUEST_AMOUNT),
+                [InlineKeyboardButton(text=cls.DOWNLOAD_PHOTOS, callback_data="download_photos")],
             ]
         )
 
@@ -51,6 +54,7 @@ class AdminMenu(Menu):
             inline_keyboard=[
                 cls._row(cls.REQUEST_PROCESS, cls.NON_PROCESSED_REQUEST_AMOUNT),
                 cls._row(cls.REQUEST_SPAM, cls.REQUEST_RESPONSE),
+                [InlineKeyboardButton(text=cls.DOWNLOAD_PHOTOS, callback_data="download_photos")],
             ]
         )
 
