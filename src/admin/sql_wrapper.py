@@ -1,12 +1,4 @@
-# src/admin/sql_wrapper.py
-
 from src.db_connector import SPAM_MARKER
-
-
-def get_single_value(result):
-    if result and len(result) > 0 and len(result[0]) > 0:
-        return result[0][0]
-    return None
 
 
 def get_unprocessed_amount():

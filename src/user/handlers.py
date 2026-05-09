@@ -3,8 +3,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
 from src.user.menu import UserMenu
-from src.user.recourses_naive import *
-from src.user.sql_wrapper import save_text, get_request_by_id, get_single_value
+from src.user.texts import *
+from src.user.sql_wrapper import save_text, get_request_by_id
+from src.utils.db_utils import get_single_value
 from src.db_connector import DBConnector, SPAM_MARKER
 
 import re
@@ -73,7 +74,7 @@ async def handle_request(message: Message, state: FSMContext, db: DBConnector):
         return
 
     uuid_str = uuid.uuid4().hex
-    result = await db.await_execute(*save_text(uuid_str, message.text))
+    result = await db.execute(*save_text(uuid_str, message.text))
     clear_success = get_single_value(result)
 
     response = REQUEST_SAVED(uuid_str) if clear_success else BAD_REQUEST_SAVE
@@ -91,7 +92,7 @@ async def handle_request_uuid(message: Message, state: FSMContext, db: DBConnect
         await show_menu(message, state, REQUEST_STATUS_DOES_NOT_EXIST)
         return
 
-    result = await db.await_execute(*get_request_by_id(user_input))
+    result = await db.execute(*get_request_by_id(user_input))
     clear_result = get_single_value(result)
 
     if clear_result and clear_result != SPAM_MARKER:

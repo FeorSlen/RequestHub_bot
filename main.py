@@ -10,7 +10,7 @@ from src.db_connector import DBConnector
 from src.user.handlers import router as user_router
 from src.admin.handlers import router as admin_router
 from src.middleware.db_middleware import DBMiddleware
-from src.middleware.rate_limit_middlware import RateLimitMiddleware
+from src.middleware.rate_limit_middleware import RateLimitMiddleware
 from src.user.menu import UserMenu
 
 
@@ -25,22 +25,22 @@ async def main():
 
     dp = Dispatcher()
 
-    #обертка над базой данных для асинхронных очередей записи чтения
-    db = DBConnector(loop = asyncio.get_running_loop())
-    db.init()
+    db = DBConnector()
+    await db.init()
 
-    #немного грязно делаем бдшки DI во все хэндлеры
     dp.message.middleware(DBMiddleware(db))
     dp.callback_query.middleware(DBMiddleware(db))
 
-    #для действий пользователя вводим rate limiting
     user_router.message.middleware(RateLimitMiddleware(UserMenu))
     user_router.callback_query.middleware(RateLimitMiddleware(UserMenu))
 
     dp.include_router(admin_router)
     dp.include_router(user_router)
 
-    await dp.start_polling(bot)
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await db.close()
 
 if __name__ == "__main__":
     asyncio.run(main())

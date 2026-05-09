@@ -5,7 +5,8 @@ from aiogram.types import Message, CallbackQuery
 from src.utils.admin_auth import IsAdmin
 from src.admin.menu import AdminMenu
 from src.admin.sql_wrapper import *
-from src.admin.recourses_naive import *
+from src.admin.texts import *
+from src.utils.db_utils import get_single_value
 from src.db_connector import DBConnector
 
 router = Router()
@@ -35,7 +36,7 @@ async def fallback(callback: CallbackQuery, state: FSMContext, db: DBConnector):
 async def get_count_non_processed(callback: CallbackQuery, state: FSMContext, db: DBConnector):
     """Запрашивает количество необработанных обращений и выводит админу."""
     await state.clear()
-    result = await db.await_execute(*get_unprocessed_amount())
+    result = await db.execute(*get_unprocessed_amount())
     count = get_single_value(result) or 0
 
     await callback.message.answer(UNPROCESSED_COUNT(count), reply_markup=AdminMenu.get_base_manual_menu())
@@ -49,7 +50,7 @@ async def process_new_request(callback: CallbackQuery, state: FSMContext, db: DB
         await _load_and_show_request(callback, state, db)
         return
 
-    result = await db.await_execute(*get_unprocessed_amount())
+    result = await db.execute(*get_unprocessed_amount())
     total = get_single_value(result) or 0
 
     if total == 0:
@@ -68,7 +69,7 @@ async def process_new_request(callback: CallbackQuery, state: FSMContext, db: DB
 async def spam(callback: CallbackQuery, state: FSMContext, db: DBConnector):
     """Помечает все обращения с таким текстом как спам и загружает следующее."""
     spam_text = await _get_state_value(state, REQUEST_TEXT_KEY)
-    await db.await_execute(*mark_text_as_spam(spam_text))
+    await db.execute(*mark_text_as_spam(spam_text))
 
     await callback.message.answer(MARKED_AS_SPAM)
     await state.update_data({OFFSET_KEY: 0})
@@ -86,10 +87,8 @@ async def response_to_request(callback: CallbackQuery, state: FSMContext):
 @router.message(AdminStates.writing_answer)
 async def handle_response_to_request(message: Message, state: FSMContext, db: DBConnector):
     """Сохраняет текстовый ответ админа и загружает следующее обращение."""
-    print(2)
-    print(message.text)
     request_id = await _get_state_value(state, REQUEST_ID_KEY)
-    await db.await_execute(*update_response_to_request(message.text.strip(), request_id))
+    await db.execute(*update_response_to_request(message.text.strip(), request_id))
 
     await message.answer(ANSWER_SAVED)
     await state.update_data({OFFSET_KEY: 0})
@@ -102,7 +101,7 @@ async def handle_response_to_request(message: Message, state: FSMContext, db: DB
 async def _load_and_show_request(source: CallbackQuery | Message, state: FSMContext, db: DBConnector):
     """Загружает обращение по текущему offset и отправляет админу."""
     data = await state.get_data()
-    result = await db.await_execute(*get_new_request(data.get(OFFSET_KEY, 0)))
+    result = await db.execute(*get_new_request(data.get(OFFSET_KEY, 0)))
 
     msg = source.message if isinstance(source, CallbackQuery) else source
     row = result[0] if result else None

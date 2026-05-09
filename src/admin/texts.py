@@ -1,7 +1,3 @@
-#TODO: вынести это все в ресурсные файлы для редактирования в админке и локализации из коробки
-
-# src/admin/resources.py
-
 ADMIN_MENU_TEXT = "🛠 Меню админ-панели"
 ADMIN_ACTIONS_TEXT = "📋 Доступные действия для обращения"
 
@@ -10,7 +6,7 @@ NO_UNPROCESSED = "✅ Все обращения обработаны! Новых
 
 REQUEST_DISPLAY = lambda req_id, text: (
     f"📩 Обращение\n"
-    f"🆔 ID: `{req_id}`\n\n"
+    f"🆔 ID: <code>{req_id}</code>\n\n"
     f"Текст обращения\n"
     f"📝 {text}\n"
 )

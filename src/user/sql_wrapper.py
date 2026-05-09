@@ -13,12 +13,3 @@ def get_request_by_id(uuid: str) -> Tuple[str, tuple]:
         "SELECT response FROM requests WHERE id = ? LIMIT 1",
         (uuid,),
     )
-
-
-def get_single_value(value):
-    try:
-        while isinstance(value, (list, tuple)) and len(value) > 0:
-            value = value[0]
-        return value
-    except Exception:
-        return None
