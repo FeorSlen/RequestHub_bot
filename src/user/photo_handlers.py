@@ -1,5 +1,5 @@
+import asyncio
 import os
-import time
 from datetime import datetime
 
 from aiogram import Router, F
@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from src.user.menu import UserMenu
 from src.user.texts import (
     UPLOAD_PHOTO_PROMPT, PHOTO_SAVED, PHOTO_SAVED_LAST,
-    PHOTO_LIMIT_REACHED, PHOTO_NOT_A_PHOTO, PHOTO_THROTTLE,
+    PHOTO_LIMIT_REACHED, PHOTO_NOT_A_PHOTO,
 )
 from src.db_connector import DBConnector
 from src.utils.db_utils import get_single_value, hash_user_id
@@ -22,8 +22,11 @@ _states = UserMenu.get_states()
 
 _PHOTOS_DIR = os.getenv("PHOTOS_DIR", "photos")
 _MAX_PHOTOS = 10
-_THROTTLE_SEC = 2
-_last_upload: dict[int, float] = {}
+_GROUP_TIMEOUT = 0.5
+
+# media_group_id -> list of (Message, DBConnector)
+_pending: dict[str, list[tuple[Message, DBConnector]]] = {}
+_tasks: dict[str, asyncio.Task] = {}
 
 
 @router.callback_query(F.data == UserMenu.user_paths[UserMenu.UPLOAD_PHOTO])
@@ -35,13 +38,31 @@ async def start_photo_upload(callback: CallbackQuery, state: FSMContext):
 
 @router.message(_states.uploading_photo, F.photo)
 async def handle_photo(message: Message, state: FSMContext, db: DBConnector):
-    user_id = message.from_user.id
-    user_hash = hash_user_id(user_id)
-    now = time.monotonic()
+    group_id = message.media_group_id
+    if group_id:
+        if group_id not in _pending:
+            _pending[group_id] = []
+            _tasks[group_id] = asyncio.create_task(
+                _flush_group(group_id, message, state, db)
+            )
+        _pending[group_id].append((message, db))
+    else:
+        await _process_photos([message], message, state, db)
 
-    if now - _last_upload.get(user_id, 0) < _THROTTLE_SEC:
-        await message.answer(PHOTO_THROTTLE)
-        return
+
+async def _flush_group(
+    group_id: str, first: Message, state: FSMContext, db: DBConnector
+):
+    await asyncio.sleep(_GROUP_TIMEOUT)
+    messages = _pending.pop(group_id, [])
+    _tasks.pop(group_id, None)
+    await _process_photos([m for m, _ in messages], first, state, db)
+
+
+async def _process_photos(
+    photos: list[Message], reply_to: Message, state: FSMContext, db: DBConnector
+):
+    user_hash = hash_user_id(reply_to.from_user.id)
 
     result = await db.execute(
         "SELECT COUNT(*) FROM photos WHERE user_hash = ?", (user_hash,)
@@ -50,32 +71,37 @@ async def handle_photo(message: Message, state: FSMContext, db: DBConnector):
 
     if count >= _MAX_PHOTOS:
         await state.clear()
-        await message.answer(PHOTO_LIMIT_REACHED, reply_markup=UserMenu.get_base_manual_menu())
+        await reply_to.answer(PHOTO_LIMIT_REACHED, reply_markup=UserMenu.get_base_manual_menu())
         return
 
     user_dir = os.path.join(_PHOTOS_DIR, user_hash)
     os.makedirs(user_dir, exist_ok=True)
-    filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f") + ".jpg"
-    dest = os.path.join(user_dir, filename)
 
-    try:
-        await message.bot.download(message.photo[-1], destination=dest)
-    except Exception:
-        await message.answer("❌ Не удалось сохранить фото. Попробуйте ещё раз.")
+    to_save = photos[: _MAX_PHOTOS - count]
+    saved = 0
+    for msg in to_save:
+        filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f") + f"_{saved}.jpg"
+        dest = os.path.join(user_dir, filename)
+        try:
+            await msg.bot.download(msg.photo[-1], destination=dest)
+            await db.execute(
+                "INSERT INTO photos (user_hash, file_path) VALUES (?, ?)",
+                (user_hash, dest),
+            )
+            saved += 1
+        except Exception:
+            pass
+
+    if saved == 0:
+        await reply_to.answer("❌ Не удалось сохранить фото. Попробуйте ещё раз.")
         return
 
-    await db.execute(
-        "INSERT INTO photos (user_hash, file_path) VALUES (?, ?)",
-        (user_hash, dest),
-    )
-    _last_upload[user_id] = now
-
-    remaining = _MAX_PHOTOS - count - 1
-    if remaining == 0:
+    remaining = _MAX_PHOTOS - count - saved
+    if remaining <= 0:
         await state.clear()
-        await message.answer(PHOTO_SAVED_LAST, reply_markup=UserMenu.get_base_manual_menu())
+        await reply_to.answer(PHOTO_SAVED_LAST, reply_markup=UserMenu.get_base_manual_menu())
     else:
-        await message.answer(PHOTO_SAVED(remaining))
+        await reply_to.answer(PHOTO_SAVED(remaining))
 
 
 @router.message(_states.uploading_photo)
